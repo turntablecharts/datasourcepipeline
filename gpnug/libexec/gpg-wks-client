@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "/opt/homebrew/Cellar/gnupg/2.4.3/bin/gpg-wks-client" "$@"
