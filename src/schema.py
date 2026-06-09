@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 # --- Auth ---
 class Token(BaseModel):
@@ -41,11 +42,42 @@ class UserLogin(BaseModel):
 class UploadLogOut(BaseModel):
     id: int
     user_id: int
-    template_id: int
-    file_path: str
-    number_of_rows: int
+    username: str
+    template_id: str
+    original_filename: Optional[str] = None
+    week_start_date: date
+    week_end_date: date
+    rows_input: int
+    rows_output: int
     status: str
-    remark: Optional[str] = None
+    error_detail: Optional[str] = None
+    created_date: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RawAlbumDataOut(BaseModel):
+    id: int
+    upload_log_id: int
+    source_sheet: str
+    row_number: int
+    original_album: Optional[str] = None
+    album_points: Optional[Decimal] = None
+    spotify_equivalent_points: Optional[Decimal] = None
+    created_date: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CleanedAlbumDataOut(BaseModel):
+    id: int
+    upload_log_id: int
+    album: str
+    total_points: Decimal
+    week_start_date: date
+    week_end_date: date
     created_date: datetime
 
     class Config:

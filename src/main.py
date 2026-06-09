@@ -33,4 +33,4 @@ app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "Data Cleaning Service"}
+    return {"status": "ok", "service": "Data Service"}

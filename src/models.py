@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 from src.database import Base
 
@@ -36,26 +36,35 @@ class UploadLog(Base):
 
 class RawAlbumData(Base):
     __tablename__ = "raw_album_data"
+    __table_args__ = (
+        Index("idx_raw_album_upload_log_id", "upload_log_id"),
+        Index("idx_raw_album_source_sheet", "source_sheet"),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    upload_log_id = Column(Integer, ForeignKey("upload_logs.id", ondelete="CASCADE"), nullable=False, index=True)
-    source_sheet = Column(String, nullable=False, index=True)
+    id = Column(Integer, primary_key=True)
+    upload_log_id = Column(Integer, ForeignKey("upload_logs.id", ondelete="CASCADE"), nullable=False)
+    source_sheet = Column(String, nullable=False)
     row_number = Column(Integer, nullable=False)
     original_album = Column(Text)
-    album_points = Column(BigInteger)
-    spotify_equivalent_points = Column(BigInteger)
+    album_points = Column(Numeric(20, 6))
+    spotify_equivalent_points = Column(Numeric(20, 6))
     created_date = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class CleanedAlbumData(Base):
     __tablename__ = "cleaned_album_data"
+    __table_args__ = (
+        Index("idx_cleaned_album_upload_log_id", "upload_log_id"),
+        Index("idx_cleaned_album_album", "album"),
+        Index("idx_cleaned_album_week", "week_start_date", "week_end_date"),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    upload_log_id = Column(Integer, ForeignKey("upload_logs.id", ondelete="CASCADE"), nullable=False, index=True)
-    album = Column(Text, nullable=False, index=True)
-    total_points = Column(BigInteger, nullable=False)
-    week_start_date = Column(Date, nullable=False, index=True)
-    week_end_date = Column(Date, nullable=False, index=True)
+    id = Column(Integer, primary_key=True)
+    upload_log_id = Column(Integer, ForeignKey("upload_logs.id", ondelete="CASCADE"), nullable=False)
+    album = Column(Text, nullable=False)
+    total_points = Column(Numeric(20, 6), nullable=False)
+    week_start_date = Column(Date, nullable=False)
+    week_end_date = Column(Date, nullable=False)
     created_date = Column(DateTime(timezone=True), server_default=func.now())
 
 

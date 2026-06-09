@@ -1,5 +1,6 @@
 import io
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
@@ -293,7 +294,7 @@ def save_cleaned_album_data(
             week_start_date=week_start_date,
             week_end_date=week_end_date,
             album=str(row["Album"]),
-            total_points=int(row["Total Points"]),
+            total_points=to_decimal_6(row["Total Points"], "cleaned", 0, "Total Points"),
         )
         for _, row in dataframe.iterrows()
     ]
@@ -327,7 +328,7 @@ def save_raw_album_data(db: Session, upload_log_id: int, file_bytes: bytes) -> i
                 source_sheet="album",
                 row_number=row_number,
                 original_album=to_nullable_string(row.get("Album")),
-                album_points=to_nullable_bigint(row.get("Points"), "album", row_number, "Points"),
+                album_points=to_nullable_decimal_6(row.get("Points"), "album", row_number, "Points"),
                 spotify_equivalent_points=None,
             )
         )
@@ -340,7 +341,7 @@ def save_raw_album_data(db: Session, upload_log_id: int, file_bytes: bytes) -> i
                 row_number=row_number,
                 original_album=to_nullable_string(row.get("Album")),
                 album_points=None,
-                spotify_equivalent_points=to_nullable_bigint(
+                spotify_equivalent_points=to_nullable_decimal_6(
                     row.get("Spotify Equivalent"),
                     "spotify_equivalent",
                     row_number,
@@ -360,17 +361,22 @@ def to_nullable_string(value) -> str | None:
     return str(value)
 
 
-def to_nullable_bigint(value, sheet_name: str, row_number: int, column_name: str) -> int | None:
+def to_nullable_decimal_6(value, sheet_name: str, row_number: int, column_name: str) -> Decimal | None:
     if pd.isna(value):
         return None
 
+    return to_decimal_6(value, sheet_name, row_number, column_name)
+
+
+def to_decimal_6(value, sheet_name: str, row_number: int, column_name: str) -> Decimal:
     numeric_value = pd.to_numeric(value, errors="coerce")
     if pd.isna(numeric_value):
         raise ValueError(f"{sheet_name} row {row_number} has a non-numeric {column_name} value.")
-    if numeric_value % 1 != 0:
-        raise ValueError(f"{sheet_name} row {row_number} has a decimal {column_name} value.")
 
-    return int(numeric_value)
+    try:
+        return Decimal(str(numeric_value)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"{sheet_name} row {row_number} has an invalid {column_name} value.") from exc
 
 
 def update_upload_log(

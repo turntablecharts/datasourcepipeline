@@ -51,7 +51,7 @@ async function loadTemplates() {
         </div>
         <span class="text-sm font-medium text-gray-800">${t.display_name}</span>
       </div>
-      <a href="${API}/templates/download/${t.filename}"
+      <a href="#"
          onclick="addAuthToDownload(event, '${t.filename}')"
          class="text-xs font-medium text-brand hover:text-blue-700 flex items-center gap-1">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

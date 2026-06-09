@@ -4,3 +4,4 @@ __pycache__
 *.pyc
 templates_store/
 uploads/
+create_user.py

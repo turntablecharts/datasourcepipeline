@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS raw_album_data (
     source_sheet VARCHAR NOT NULL,
     row_number INTEGER NOT NULL,
     original_album TEXT,
-    album_points BIGINT,
-    spotify_equivalent_points BIGINT,
+    album_points NUMERIC(20, 6),
+    spotify_equivalent_points NUMERIC(20, 6),
     created_date TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS cleaned_album_data (
     id SERIAL PRIMARY KEY,
     upload_log_id INTEGER NOT NULL REFERENCES upload_logs(id) ON DELETE CASCADE,
     album TEXT NOT NULL,
-    total_points BIGINT NOT NULL,
+    total_points NUMERIC(20, 6) NOT NULL,
     week_start_date DATE NOT NULL,
     week_end_date DATE NOT NULL,
     created_date TIMESTAMPTZ DEFAULT NOW()
@@ -92,6 +92,13 @@ CREATE TABLE IF NOT EXISTS cleaned_album_data (
 
 CREATE INDEX IF NOT EXISTS idx_raw_album_upload_log_id
 ON raw_album_data(upload_log_id);
+
+ALTER TABLE raw_album_data
+ALTER COLUMN album_points TYPE NUMERIC(20, 6) USING album_points::NUMERIC(20, 6),
+ALTER COLUMN spotify_equivalent_points TYPE NUMERIC(20, 6) USING spotify_equivalent_points::NUMERIC(20, 6);
+
+ALTER TABLE cleaned_album_data
+ALTER COLUMN total_points TYPE NUMERIC(20, 6) USING total_points::NUMERIC(20, 6);
 
 CREATE INDEX IF NOT EXISTS idx_raw_album_source_sheet
 ON raw_album_data(source_sheet);

@@ -47,7 +47,14 @@ class TopAlbumData:
     @staticmethod
     def _clean_album_names(dataframe: pd.DataFrame, sheet_name: str) -> pd.DataFrame:
         cleaned = dataframe.copy()
-        cleaned["Album"] = cleaned["Album"].fillna("").astype(str).str.strip().str.title()
+        cleaned["Album"] = (
+            cleaned["Album"]
+            .fillna("")
+            .astype(str)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+            .str.title()
+        )
 
         blank_count = (cleaned["Album"] == "").sum()
         if blank_count:
@@ -64,11 +71,7 @@ class TopAlbumData:
         if invalid_count:
             raise ValueError(f"{sheet_name} sheet contains {invalid_count} non-numeric {column_name} value(s).")
 
-        decimal_count = (numeric_values % 1 != 0).sum()
-        if decimal_count:
-            raise ValueError(f"{sheet_name} sheet contains {decimal_count} decimal {column_name} value(s).")
-
-        cleaned[column_name] = numeric_values.astype("int64")
+        cleaned[column_name] = numeric_values.round(6).astype(float)
         return cleaned
         
     def manage(self):
@@ -95,8 +98,15 @@ class TopAlbumData:
         # Sum of Points and Spotify Equivalent FOR EACH album
         merged_df['Total Points'] = merged_df['Points'] + merged_df['Spotify Equivalent']
         
-        # Select only required columns and remove duplicates of Album (handled by groupby)
-        final_df = merged_df[['Album', 'Total Points']]
+        # Final consolidation prevents duplicate album rows from leaking into the output.
+        final_df = merged_df[['Album', 'Total Points']].groupby(
+            'Album',
+            as_index=False,
+        )['Total Points'].sum().sort_values(
+            by="Total Points",
+            ascending=False,
+            kind="mergesort",
+        )
         
         rows_output = len(final_df)
         log = [
