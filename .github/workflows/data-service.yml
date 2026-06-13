@@ -15,11 +15,23 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate deployment secrets
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          APP_DIR: ${{ secrets.APP_DIR }}
+        run: |
+          test -n "$DEPLOY_HOST" || { echo "Missing GitHub secret: DEPLOY_HOST"; exit 1; }
+          test -n "$DEPLOY_USER" || { echo "Missing GitHub secret: DEPLOY_USER"; exit 1; }
+          test -n "$DEPLOY_SSH_KEY" || { echo "Missing GitHub secret: DEPLOY_SSH_KEY"; exit 1; }
+          test -n "$APP_DIR" || { echo "Missing GitHub secret: APP_DIR"; exit 1; }
+
       - name: Configure SSH
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -31,7 +43,8 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          APP_DIR: ${{ secrets.APP_DIR }}
 
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -41,22 +54,25 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
 
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "sudo tee /etc/datasource-platform.env > /dev/null" << EOF
-          SECRET_KEY=$SECRET_KEY
-          DB_HOST=$DB_HOST
-          DB_PORT=$DB_PORT
-          DB_NAME=$DB_NAME
-          DB_USER=$DB_USER
-          DB_PASSWORD=$DB_PASSWORD
-          EOF
+          {
+            printf 'SECRET_KEY=%s\n' "$SECRET_KEY"
+            printf 'DB_HOST=%s\n' "$DB_HOST"
+            printf 'DB_PORT=%s\n' "$DB_PORT"
+            printf 'DB_NAME=%s\n' "$DB_NAME"
+            printf 'DB_USER=%s\n' "$DB_USER"
+            printf 'DB_PASSWORD=%s\n' "$DB_PASSWORD"
+          } > app.env
+          chmod 600 app.env
+          scp -i ~/.ssh/deploy_key -P "$DEPLOY_PORT" app.env "$DEPLOY_USER@$DEPLOY_HOST:$APP_DIR/.env"
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "chmod 600 '$APP_DIR/.env'"
 
       - name: Run remote deployment
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
           APP_DIR: ${{ secrets.APP_DIR }}
-          SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'datasourcepipeline.service' }}
           DEPLOY_BRANCH: main
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
