@@ -1,0 +1,14 @@
+[Unit]
+Description=TTC Data Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/datasourcepipeline
+EnvironmentFile=/opt/datasourcepipeline/.env
+ExecStart=/opt/datasourcepipeline/venv/bin/uvicorn src.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
