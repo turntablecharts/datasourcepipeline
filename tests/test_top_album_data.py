@@ -111,3 +111,23 @@ def test_non_numeric_spotify_points_fail():
 
     with pytest.raises(ValueError, match="non-numeric Spotify Equivalent"):
         run_cleaner(file_bytes)
+
+
+def test_negative_album_points_fail():
+    file_bytes = make_workbook(
+        album_data=pd.DataFrame({"Album": ["Alpha"], "Points": [-1]}),
+        spotify_data=pd.DataFrame({"Album": ["Alpha"], "Spotify Equivalent": [3]}),
+    )
+
+    with pytest.raises(ValueError, match="negative Points"):
+        run_cleaner(file_bytes)
+
+
+def test_negative_spotify_points_fail():
+    file_bytes = make_workbook(
+        album_data=pd.DataFrame({"Album": ["Alpha"], "Points": [10]}),
+        spotify_data=pd.DataFrame({"Album": ["Alpha"], "Spotify Equivalent": [-3]}),
+    )
+
+    with pytest.raises(ValueError, match="negative Spotify Equivalent"):
+        run_cleaner(file_bytes)
