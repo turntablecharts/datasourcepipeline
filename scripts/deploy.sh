@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:?APP_DIR is required}"
-SERVICE_NAME="${SERVICE_NAME:-datasourcepipeline.service}"
+SERVICE_NAME="${SERVICE_NAME:-ttcdata.service}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 
 cd "$APP_DIR"
