@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:?APP_DIR is required}"
-SERVICE_NAME="${SERVICE_NAME:-ttcdata.service}"
+SERVICE_NAME="${SERVICE_NAME:-datasourcepipeline.service}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 
 cd "$APP_DIR"
@@ -37,8 +37,25 @@ else
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  sudo systemctl restart "$SERVICE_NAME"
-  sudo systemctl status "$SERVICE_NAME" --no-pager --lines=20
+  if sudo -n true 2>/dev/null; then
+    sudo -n systemctl restart "$SERVICE_NAME"
+    sudo -n systemctl status "$SERVICE_NAME" --no-pager --lines=20
+  else
+    cat << EOF
+Deployment updated the code and database, but could not restart $SERVICE_NAME.
+
+The deploy user needs passwordless sudo for systemctl. On the VM, run:
+
+  sudo visudo
+
+Then add a line like this, replacing the username and systemctl path if needed:
+
+  $(whoami) ALL=(ALL) NOPASSWD: /bin/systemctl restart $SERVICE_NAME, /bin/systemctl status $SERVICE_NAME
+
+After saving, rerun the GitHub Actions deployment.
+EOF
+    exit 1
+  fi
 else
   echo "systemctl is unavailable. Restart the app process manually."
 fi
