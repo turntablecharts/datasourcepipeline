@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Turntable Data Cleaning</title>
+    <title>Turntable Data Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -191,6 +191,32 @@
                     <span id="upload-error-text"></span>
                 </div>
 
+                <!-- Replacement confirmation -->
+                <div id="replacement-warning" class="hidden mb-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg
+                    text-amber-800 text-sm">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l6.516
+                    11.591c.75 1.334-.213 2.985-1.743 2.985H3.484c-1.53 0-2.493-1.651-1.743-2.985L8.257
+                    3.1zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 001-1V7a1 1 0 10-2 0v4a1
+                    1 0 001 1z" clip-rule="evenodd" />
+                        </svg>
+                        <div class="min-w-0">
+                            <p id="replacement-warning-text"></p>
+                            <div class="flex gap-2 mt-3">
+                                <button type="button" onclick="proceedReplacementUpload()"
+                                    class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition">
+                                    Replace Data
+                                </button>
+                                <button type="button" onclick="cancelReplacementUpload()"
+                                    class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-amber-800 text-xs font-medium transition">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Success -->
                 <div id="upload-success" class="hidden mb-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg
                     text-green-700 text-sm flex items-center gap-2">
@@ -199,7 +225,7 @@
                  00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414
                  1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
-                    File cleaned successfully — your download should have started.
+                    <span id="upload-success-text">File cleaned successfully — your download should have started.</span>
                 </div>
 
                 <button id="upload-btn" onclick="uploadFile()" class="w-full bg-brand hover:bg-blue-700 text-white font-medium

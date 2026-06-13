@@ -4,17 +4,25 @@ import io
 import os
 from datetime import datetime
 from src.config import settings
+from src.weekly_data_cleaning.artiste_genre_metadata.cleaning_client import ArtisteGenreMetadata
 from src.weekly_data_cleaning.top_album_data.cleaning_client import TopAlbumData
 
 
 def get_script_module(template_name: str, file_bytes: bytes, original_filename: str, week_start_date: str = "", week_end_date: str = ""):
     module = None
-    if template_name == "editorial_top_album_data_template.xlsx":
+    if template_name in {"editorial_top_album_data_template.xlsx", "top_album_data_template.xlsx"}:
         module = TopAlbumData(
             file_bytes=file_bytes, 
             original_filename=original_filename, 
             week_start_date=week_start_date, 
             week_end_date=week_end_date
+        )
+    elif template_name == "artiste_genre_metadata_templates.xlsx":
+        module = ArtisteGenreMetadata(
+            file_bytes=file_bytes,
+            original_filename=original_filename,
+            week_start_date=week_start_date,
+            week_end_date=week_end_date,
         )
     
     if module is None:

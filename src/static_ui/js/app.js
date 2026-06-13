@@ -1,5 +1,6 @@
 let currentUser = null;
 let availableTemplates = [];
+let pendingReplacementUpload = null;
 
 async function init() {
   requireAuth();
@@ -168,14 +169,24 @@ function clearFile() {
 
 function resetUploadState() {
   document.getElementById('upload-error').classList.add('hidden');
+  document.getElementById('replacement-warning').classList.add('hidden');
   document.getElementById('upload-success').classList.add('hidden');
+  document.getElementById('upload-success-text').textContent = 'File cleaned successfully — your download should have started.';
+  pendingReplacementUpload = null;
   document.getElementById('upload-btn').disabled = false;
 }
 
-async function uploadFile() {
+async function uploadFile(confirmReplacement = false) {
   const templateFilename = document.getElementById('template-select').value;
   const weekStartDate = document.getElementById('week-start-date').value;
   const weekEndDate = document.getElementById('week-end-date').value;
+  const uploadContext = selectedFile ? {
+    templateFilename,
+    weekStartDate,
+    weekEndDate,
+    fileName: selectedFile.name,
+    fileLastModified: selectedFile.lastModified,
+  } : null;
 
   if (!templateFilename) {
     showUploadError('Please select a template before uploading.');
@@ -194,7 +205,9 @@ async function uploadFile() {
   btn.disabled = true;
   btn.textContent = 'Processing...';
   document.getElementById('upload-error').classList.add('hidden');
+  document.getElementById('replacement-warning').classList.add('hidden');
   document.getElementById('upload-success').classList.add('hidden');
+  document.getElementById('upload-success-text').textContent = 'File cleaned successfully — your download should have started.';
 
   try {
     const form = new FormData();
@@ -202,6 +215,7 @@ async function uploadFile() {
     form.append('template_name', templateFilename);
     form.append('week_start_date', weekStartDate);
     form.append('week_end_date', weekEndDate);
+    form.append('confirm_replace', String(confirmReplacement));
 
     const res = await fetch(`${API}/clean/`, {
       method: 'POST',
@@ -209,11 +223,22 @@ async function uploadFile() {
       body: form
     });
 
+    if (res.status === 409) {
+      const err = await res.json();
+      showReplacementWarning(
+        err.detail || "This week's data has been processed in the past. Do you want to replace the DB data with this new version?",
+        uploadContext,
+      );
+      return;
+    }
+
     if (!res.ok) {
       const err = await res.json();
       showUploadError(err.detail || 'Processing failed.');
       return;
     }
+
+    const replacedPreviousUpload = res.headers.get('X-Replaced-Previous-Upload') === 'true';
 
     // Trigger download
     const blob = await res.blob();
@@ -227,7 +252,7 @@ async function uploadFile() {
     a.click();
     URL.revokeObjectURL(url);
 
-    document.getElementById('upload-success').classList.remove('hidden');
+    showUploadSuccess(replacedPreviousUpload);
     await loadHistory();
 
   } catch (err) {
@@ -241,7 +266,52 @@ async function uploadFile() {
 function showUploadError(msg) {
   const el = document.getElementById('upload-error');
   document.getElementById('upload-error-text').textContent = msg;
+  document.getElementById('replacement-warning').classList.add('hidden');
   el.classList.remove('hidden');
+}
+
+function showReplacementWarning(msg, uploadContext) {
+  pendingReplacementUpload = uploadContext;
+  document.getElementById('replacement-warning-text').textContent = msg;
+  document.getElementById('replacement-warning').classList.remove('hidden');
+}
+
+function proceedReplacementUpload() {
+  if (!pendingReplacementUpload) return;
+  const templateFilename = document.getElementById('template-select').value;
+  const weekStartDate = document.getElementById('week-start-date').value;
+  const weekEndDate = document.getElementById('week-end-date').value;
+  const uploadChanged =
+    !selectedFile ||
+    pendingReplacementUpload.templateFilename !== templateFilename ||
+    pendingReplacementUpload.weekStartDate !== weekStartDate ||
+    pendingReplacementUpload.weekEndDate !== weekEndDate ||
+    pendingReplacementUpload.fileName !== selectedFile.name ||
+    pendingReplacementUpload.fileLastModified !== selectedFile.lastModified;
+
+  pendingReplacementUpload = null;
+  if (uploadChanged) {
+    document.getElementById('replacement-warning').classList.add('hidden');
+    showUploadError('Upload details changed. Please submit again before replacing existing DB data.');
+    return;
+  }
+
+  uploadFile(true);
+}
+
+function cancelReplacementUpload() {
+  pendingReplacementUpload = null;
+  document.getElementById('replacement-warning').classList.add('hidden');
+  showUploadError('Upload cancelled. Existing DB data was left unchanged.');
+}
+
+function showUploadSuccess(replacedPreviousUpload) {
+  const message = replacedPreviousUpload
+    ? "This week's data has been processed in the past, replacing the DB data with this new version. Your download should have started."
+    : 'File cleaned successfully — your download should have started.';
+
+  document.getElementById('upload-success-text').textContent = message;
+  document.getElementById('upload-success').classList.remove('hidden');
 }
 
 

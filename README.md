@@ -24,6 +24,7 @@ Current weekly album cleaning behavior:
 > - Accepts decimal point values and stores them to 6 decimal places.
 > - Groups duplicate albums, calculates `Total Points`, sorts output by `Total Points` descending, and writes `Joint Album Data`.
 > - Saves raw rows from both sheets and cleaned output rows to the database.
+> - Loads are idempotent by template and week range. Re-uploading the same template/week replaces the current linked raw/cleaned rows and records the replacement in `upload_logs`.
 
 ## Project Structure
 
@@ -167,6 +168,21 @@ Important tables:
 - `cleaned_album_data`: final cleaned album totals.
 - `templates`: template metadata.
 
+Upload idempotency uses the current dataset identity:
+
+```text
+template_id + week_start_date + week_end_date
+```
+
+`upload_logs` stores file and replacement metadata:
+
+- `file_hash`
+- `is_current`
+- `replaces_upload_log_id`
+- `replaced_by_upload_log_id`
+- `linked_data_cleared`
+- `duplicate_file_upload`
+
 Album point columns use `NUMERIC(20, 6)`:
 
 - `raw_album_data.album_points`
@@ -180,6 +196,49 @@ python -m pytest tests
 ```
 
 The cleaner tests build Excel workbooks in memory and verify validation, grouping, album-name cleanup, and output behavior.
+
+## GitHub Actions Deployment
+
+This repo includes `.github/workflows/deploy.yml`.
+
+On every push to `main`, GitHub Actions will:
+
+1. Install Python dependencies.
+2. Run `python -m pytest tests`.
+3. SSH into the deployment server.
+4. Pull the latest `main` branch in the app directory.
+5. Install/update `requirements.txt`.
+6. Run `sql/001_album_cleaning_tables.sql` if `psql` and DB env vars are available.
+7. Restart the configured systemd service.
+
+Add these GitHub repository secrets under **Settings → Secrets and variables → Actions**:
+
+```text
+DEPLOY_HOST       Server hostname or IP address
+DEPLOY_USER       SSH user
+DEPLOY_SSH_KEY    Private SSH key with access to the server
+APP_DIR           Absolute path to the cloned repo on the server
+DEPLOY_PORT       SSH port, optional, defaults to 22
+SERVICE_NAME      systemd service, optional, defaults to datasourcepipeline.service
+```
+
+The server should already have:
+
+- the repository cloned at `APP_DIR`
+- a production `.env` file in `APP_DIR`
+- Python 3 and `python3-venv`
+- PostgreSQL client tools if you want Actions to run the SQL migration
+- a systemd service that starts the app, for example `datasourcepipeline.service`
+
+A sample systemd unit is available at `deploy/datasourcepipeline.service.example`.
+Update its paths to match `APP_DIR`, then install it on the server:
+
+```bash
+sudo cp deploy/datasourcepipeline.service.example /etc/systemd/system/datasourcepipeline.service
+sudo systemctl daemon-reload
+sudo systemctl enable datasourcepipeline.service
+sudo systemctl start datasourcepipeline.service
+```
 
 ## Local HTTPS for Chrome Downloads
 

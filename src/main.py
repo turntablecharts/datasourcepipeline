@@ -24,6 +24,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "X-Replaced-Previous-Upload"],
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])

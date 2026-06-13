@@ -45,12 +45,18 @@ class UploadLogOut(BaseModel):
     username: str
     template_id: str
     original_filename: Optional[str] = None
+    file_hash: Optional[str] = None
     week_start_date: date
     week_end_date: date
     rows_input: int
     rows_output: int
     status: str
     error_detail: Optional[str] = None
+    is_current: bool
+    replaces_upload_log_id: Optional[int] = None
+    replaced_by_upload_log_id: Optional[int] = None
+    linked_data_cleared: bool
+    duplicate_file_upload: bool
     created_date: datetime
 
     class Config:
