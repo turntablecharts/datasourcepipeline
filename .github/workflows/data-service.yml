@@ -72,7 +72,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
           APP_DIR: ${{ secrets.APP_DIR }}
-          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'datasourcepipeline.service' }}
+          SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'ttcdata.service' }}
           DEPLOY_BRANCH: main
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
