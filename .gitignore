@@ -3,4 +3,3 @@ venv
 __pycache__
 *.pyc
 uploads/
-create_user.py
