@@ -37,10 +37,7 @@ else
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  if sudo -n true 2>/dev/null; then
-    sudo -n systemctl restart "$SERVICE_NAME"
-    sudo -n systemctl status "$SERVICE_NAME" --no-pager --lines=20
-  else
+  if ! sudo -n systemctl restart "$SERVICE_NAME"; then
     cat << EOF
 Deployment updated the code and database, but could not restart $SERVICE_NAME.
 
@@ -56,6 +53,8 @@ After saving, rerun the GitHub Actions deployment.
 EOF
     exit 1
   fi
+
+  sudo -n systemctl status "$SERVICE_NAME" --no-pager --lines=20 || true
 else
   echo "systemctl is unavailable. Restart the app process manually."
 fi
