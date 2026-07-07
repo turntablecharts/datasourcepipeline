@@ -23,7 +23,7 @@ def bootstrap_admin_user() -> None:
         user = models.User(
             email=email,
             hashed_password=hash_password(password),
-            username="bimie",  
+            username="bimie", 
             first_name="Temitope",
             last_name="Babatola",
             role="admin",
