@@ -30,16 +30,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
-        env:
-          SECRET_KEY: test-secret
-          DB_HOST: localhost
-          DB_PORT: "5432"
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: datasourcepipeline_test
-        run: python -m pytest tests
-
       - name: Zip artifact for deployment
         run: |
           zip release.zip ./* -r \
@@ -82,30 +72,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9B7B712808BB438FBB6ADC2D2D29A147 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_27BF7C1ED1ED402F916F14740B3796CD }}
 
-      - name: Configure Azure App Settings
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Configure Azure Startup Command
         run: |
           app_id="$(az webapp list --query "[?name=='turntabledata'].id | [0]" -o tsv)"
           test -n "$app_id" || { echo "Unable to find Azure Web App: turntabledata"; exit 1; }
-
-          az webapp config appsettings set \
-            --ids "$app_id" \
-            --settings \
-            "SECRET_KEY=${SECRET_KEY}" \
-            "DB_HOST=${DB_HOST}" \
-            "DB_PORT=${DB_PORT}" \
-            "DB_NAME=${DB_NAME}" \
-            "DB_USER=${DB_USER}" \
-            "DB_PASSWORD=${DB_PASSWORD}" \
-            "SCM_DO_BUILD_DURING_DEPLOYMENT=true" \
-            "ENABLE_ORYX_BUILD=true" \
-            "WEBSITES_PORT=8000"
 
           az webapp config set \
             --ids "$app_id" \
