@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from src.database import engine, Base
 from src.auth.bootstrap import bootstrap_admin_user
 from src.auth.router import router as auth_router
@@ -37,3 +38,38 @@ app.include_router(admin_router, prefix="/admin", tags=["admin"])
 @app.get("/")
 def root():
     return {"status": "ok", "service": "Data Service"}
+
+
+@app.get("/debug/db")
+def debug_db():
+    try:
+        with engine.connect() as connection:
+            database_name = connection.execute(text("select current_database()")).scalar()
+            database_user = connection.execute(text("select current_user")).scalar()
+            table_rows = connection.execute(
+                text(
+                    """
+                    select table_name
+                    from information_schema.tables
+                    where table_schema = 'public'
+                    order by table_name
+                    """
+                )
+            ).fetchall()
+            user_count = None
+            if any(row[0] == "users" for row in table_rows):
+                user_count = connection.execute(text("select count(*) from users")).scalar()
+
+        return {
+            "status": "ok",
+            "database": database_name,
+            "user": database_user,
+            "tables": [row[0] for row in table_rows],
+            "users_count": user_count,
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "error_type": exc.__class__.__name__,
+            "error": str(exc),
+        }
