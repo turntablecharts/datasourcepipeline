@@ -89,4 +89,10 @@ jobs:
           slot-name: 'Production'
           package: .
           startup-command: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+      - name: Restart Azure Web App
+        run: |
+          app_id="$(az webapp list --query "[?name=='turntabledata'].id | [0]" -o tsv)"
+          test -n "$app_id" || { echo "Unable to find Azure Web App: turntabledata"; exit 1; }
+          az webapp restart --ids "$app_id"
           
