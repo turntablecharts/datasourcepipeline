@@ -8,8 +8,8 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
-  AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME || 'turntable-control-panel' }}
-  AZURE_WEBAPP_SLOT: ${{ vars.AZURE_WEBAPP_SLOT || 'Production' }}
+  AZURE_WEBAPP_NAME: 'turntable-data-service'
+  AZURE_WEBAPP_SLOT: 'Production'
 
 jobs:
   build:
@@ -131,6 +131,9 @@ jobs:
             "DB_NAME=${DB_NAME}"
             "DB_USER=${DB_USER}"
             "DB_PASSWORD=${DB_PASSWORD}"
+            "SCM_DO_BUILD_DURING_DEPLOYMENT=true"
+            "ENABLE_ORYX_BUILD=true"
+            "WEBSITES_PORT=8000"
           )
 
           if [ "${AZURE_WEBAPP_SLOT}" != "Production" ]; then
@@ -138,6 +141,22 @@ jobs:
           fi
 
           az webapp config appsettings set "${app_settings_args[@]}"
+
+      - name: Configure Azure Startup Command
+        env:
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        run: |
+          startup_args=(
+            --name "${AZURE_WEBAPP_NAME}"
+            --resource-group "${AZURE_RESOURCE_GROUP}"
+            --startup-file "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000"
+          )
+
+          if [ "${AZURE_WEBAPP_SLOT}" != "Production" ]; then
+            startup_args+=(--slot "${AZURE_WEBAPP_SLOT}")
+          fi
+
+          az webapp config set "${startup_args[@]}"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3

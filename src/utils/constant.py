@@ -9,3 +9,7 @@ class EnvConstants:
     DB_PASSWORD=os.getenv('DB_PASSWORD')
     DB_PORT=os.getenv('DB_PORT')
     DB_NAME=os.getenv('DB_NAME')
+    FTP_HOST=os.getenv('FTP_HOST')
+    FTP_USER=os.getenv('FTP_USER')
+    FTP_PASS=os.getenv('FTP_PASS')
+    GPG_PASSPHRASE=os.getenv('GPG_PASSPHRASE')
