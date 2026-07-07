@@ -23,8 +23,9 @@ def create_user(
     user = models.User(
         email=user_data.email,
         hashed_password=hash_password(user_data.password),
-        full_name=user_data.full_name,
-        team=user_data.team,
+        username=user_data.username,
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
         role=user_data.role
     )
     db.add(user)
