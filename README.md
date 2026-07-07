@@ -199,45 +199,43 @@ The cleaner tests build Excel workbooks in memory and verify validation, groupin
 
 ## GitHub Actions Deployment
 
-This repo includes `.github/workflows/deploy.yml`.
+This repo includes `.github/workflows/data-service.yml` for Azure App Service deployment.
 
 On every push to `main`, GitHub Actions will:
 
 1. Install Python dependencies.
 2. Run `python -m pytest tests`.
-3. SSH into the deployment server.
-4. Pull the latest `main` branch in the app directory.
-5. Install/update `requirements.txt`.
-6. Run `sql/001_album_cleaning_tables.sql` if `psql` and DB env vars are available.
-7. Restart the configured systemd service.
+3. Zip the app source for deployment.
+4. Log in to Azure using OIDC.
+5. Configure Azure App Service app settings.
+6. Deploy the package to the Azure Web App.
 
 Add these GitHub repository secrets under **Settings → Secrets and variables → Actions**:
 
 ```text
-DEPLOY_HOST       Server hostname or IP address
-DEPLOY_USER       SSH user
-DEPLOY_SSH_KEY    Private SSH key with access to the server
-APP_DIR           Absolute path to the cloned repo on the server
-DEPLOY_PORT       SSH port, optional, defaults to 22
-SERVICE_NAME      systemd service, optional, defaults to datasourcepipeline.service
+AZURE_CLIENT_ID
+AZURE_TENANT_ID
+AZURE_SUBSCRIPTION_ID
+AZURE_RESOURCE_GROUP
+SECRET_KEY
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD
 ```
 
-The server should already have:
+Add these GitHub repository variables if the defaults are not correct:
 
-- the repository cloned at `APP_DIR`
-- a production `.env` file in `APP_DIR`
-- Python 3 and `python3-venv`
-- PostgreSQL client tools if you want Actions to run the SQL migration
-- a systemd service that starts the app, for example `datasourcepipeline.service`
+```text
+AZURE_WEBAPP_NAME   defaults to turntable-data-service
+AZURE_WEBAPP_SLOT   defaults to Production
+```
 
-A sample systemd unit is available at `deploy/datasourcepipeline.service.example`.
-Update its paths to match `APP_DIR`, then install it on the server:
+The workflow deploys the FastAPI app with this startup command:
 
-```bash
-sudo cp deploy/datasourcepipeline.service.example /etc/systemd/system/datasourcepipeline.service
-sudo systemctl daemon-reload
-sudo systemctl enable datasourcepipeline.service
-sudo systemctl start datasourcepipeline.service
+```text
+python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## Local HTTPS for Chrome Downloads
