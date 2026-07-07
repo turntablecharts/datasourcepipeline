@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.database import engine, Base
+from src.auth.bootstrap import bootstrap_admin_user
 from src.auth.router import router as auth_router
 from src.templates.router import router as templates_router
 from src.weekly_data_cleaning.router import router as cleaning_router
@@ -9,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
 Base.metadata.create_all(bind=engine)
+bootstrap_admin_user()
 
 app = FastAPI(title="TTC Data Service")
 app.mount("/static", StaticFiles(directory="src/static_ui"), name="static")
