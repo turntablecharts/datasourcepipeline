@@ -2,7 +2,7 @@ import ftplib
 import gnupg
 import os
 from datetime import datetime, timedelta
-from ...utils.utils import EnvConstants
+from ...utils.constant import EnvConstants
 
 FTP_HOST = EnvConstants.FTP_HOST
 FTP_USER =  EnvConstants.FTP_USER
@@ -87,4 +87,3 @@ def generate_file_names(file_dates):
 def get_files(start_date, end_date):
     download_files(generate_file_names(get_dates_between(start_date, end_date)))
     print('Download completed...')
-
