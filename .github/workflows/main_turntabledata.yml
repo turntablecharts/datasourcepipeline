@@ -79,7 +79,7 @@ jobs:
 
           az webapp config set \
             --ids "$app_id" \
-            --startup-file "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000"
+            --startup-file "bash scripts/startup.sh"
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
@@ -88,7 +88,7 @@ jobs:
           app-name: 'turntabledata'
           slot-name: 'Production'
           package: .
-          startup-command: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+          startup-command: bash scripts/startup.sh
 
       - name: Restart Azure Web App
         run: |

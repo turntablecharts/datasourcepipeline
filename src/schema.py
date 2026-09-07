@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+from typing import Literal, Optional
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -14,11 +14,11 @@ class TokenData(BaseModel):
 # --- Users ---
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
-    username: str
-    first_name: str
-    last_name: str
-    role: str = "user"
+    password: str = Field(min_length=8)
+    username: str = Field(min_length=1, max_length=100)
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    role: Literal["user", "admin"] = "user"
 
 class UserOut(BaseModel):
     id: int

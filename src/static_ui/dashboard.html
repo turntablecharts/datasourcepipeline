@@ -48,20 +48,26 @@
         <!-- Sidebar -->
         <aside class="hidden lg:block w-64 shrink-0 bg-white border-r border-gray-200 px-4 py-6">
             <nav class="space-y-1">
-                <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-brand text-sm font-medium text-left">
+                <button id="weekly-nav" onclick="showSection('weekly')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-brand text-sm font-medium text-left">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Weekly Cleaning Templates
                 </button>
-                <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 text-sm font-medium text-left cursor-not-allowed"
-                    disabled>
+                <button id="streaming-nav" onclick="showSection('streaming')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 text-sm font-medium text-left">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 19V5m4 14V9m4 10V3m4 16v-7m4 7V7" />
                     </svg>
                     Streaming Data
+                </button>
+                <button id="configurations-nav" onclick="showSection('configurations')" class="hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 text-sm font-medium text-left">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configurations
                 </button>
                 <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-500 hover:bg-gray-50 text-sm font-medium text-left cursor-not-allowed"
                     disabled>
@@ -78,13 +84,15 @@
         <main class="flex-1 max-w-6xl mx-auto px-6 py-8 space-y-8">
             <div class="lg:hidden">
                 <label class="block text-xs font-medium text-gray-500 mb-1.5">Section</label>
-                <select class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
-                    <option>Weekly Cleaning Templates</option>
-                    <option disabled>Streaming Data</option>
+                <select id="mobile-section-select" onchange="showSection(this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                    <option value="weekly">Weekly Cleaning Templates</option>
+                    <option value="streaming">Streaming Data</option>
+                    <option id="configurations-mobile-option" value="configurations" class="hidden">Configurations</option>
                     <option disabled>Radio Data</option>
                 </select>
             </div>
 
+            <section id="weekly-section" class="space-y-8">
             <div>
                 <h1 class="text-xl font-semibold text-gray-900">Weekly Cleaning Templates</h1>
                 <p class="text-sm text-gray-500 mt-1">Download weekly cleaning templates, upload completed files.</p>
@@ -270,6 +278,248 @@
                 </table>
             </div>
         </div>
+            </section>
+
+            <section id="streaming-section" class="hidden space-y-8">
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900">Streaming Data</h1>
+                    <p class="text-sm text-gray-500 mt-1">Upload weekly platform reports for storage and metadata enrichment.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                    <h2 class="font-semibold text-gray-900 text-lg mb-5">Upload Apple Music Data</h2>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Platform</label>
+                        <select class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white" disabled>
+                            <option>Apple Music</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">Week Start Date</label>
+                            <input id="streaming-week-start" type="date" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">Week End Date</label>
+                            <input id="streaming-week-end" type="date" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                    </div>
+
+                    <div id="streaming-dropzone" class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-brand hover:bg-blue-50 transition mb-4">
+                        <input id="streaming-file-input" type="file" accept=".csv,.xlsx" class="hidden" />
+                        <div id="streaming-file-prompt">
+                            <p class="text-sm text-gray-500">Drag & drop an Apple Music report here or <span class="text-brand font-medium">browse</span></p>
+                            <p class="text-xs text-gray-400 mt-1">CSV or XLSX, up to 20 MB</p>
+                        </div>
+                        <div id="streaming-file-info" class="hidden text-sm font-medium text-gray-700"></div>
+                    </div>
+
+                    <div id="streaming-message" class="hidden mb-4 px-4 py-3 rounded-lg text-sm"></div>
+                    <button id="streaming-upload-btn" onclick="uploadStreamingFile()" class="w-full bg-brand hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                        Upload Apple Music Data
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                    <h2 class="font-semibold text-gray-900 text-lg mb-1">Download Audiomack / Boomplay</h2>
+                    <p id="ab-coverage" class="text-xs text-gray-500 mb-5">Select a platform to view available coverage.</p>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Platform</label>
+                        <select id="ab-platform" onchange="streamingPlatformChanged()" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="audiomack">Audiomack</option>
+                            <option value="boomplay">Boomplay</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">Start Date</label>
+                            <input id="ab-start-date" type="date" onchange="loadAudiomackCountries()" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">End Date</label>
+                            <input id="ab-end-date" type="date" onchange="loadAudiomackCountries()" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                    </div>
+
+                    <div id="ab-countries-wrap" class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Countries</label>
+                        <details id="ab-countries-dropdown" class="relative">
+                            <summary class="list-none w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white cursor-pointer flex items-center justify-between">
+                                <span id="ab-countries-summary" class="text-gray-500">Select countries</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </summary>
+                            <div id="ab-countries-options" class="absolute z-20 mt-1 w-full max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg p-2">
+                                <p class="px-2 py-2 text-sm text-gray-400">Select a date range first.</p>
+                            </div>
+                        </details>
+                        <p class="text-xs text-gray-400 mt-1">Select one or more countries. Each country is exported to a separate sheet.</p>
+                    </div>
+
+                    <div id="ab-message" class="hidden mb-4 px-4 py-3 rounded-lg text-sm"></div>
+                    <button id="ab-download-btn" onclick="downloadStreamingExport()" class="w-full bg-brand hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                        Download report
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <h2 class="font-semibold text-gray-900 text-sm mb-5">Recent Audiomack / Boomplay Runs</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Platform</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Reporting week</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Files</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Rows</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Status</th>
+                            </tr></thead>
+                            <tbody id="ab-runs-body">
+                                <tr><td colspan="5" class="px-4 py-8 text-center text-sm text-gray-400">Open this tab to load ingestion history.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <h2 class="font-semibold text-gray-900 text-sm mb-5">Recent Apple Music Uploads</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">File</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Reporting week</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Uploaded by</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Status</th>
+                            </tr></thead>
+                            <tbody id="streaming-history-body">
+                                <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-gray-400">Open this tab to load recent uploads.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="configurations-section" class="hidden space-y-8">
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900">Configurations</h1>
+                    <p class="text-sm text-gray-500 mt-1">Administrative controls for data ingestion and system operations.</p>
+                </div>
+
+                <div class="border-b border-gray-200 flex gap-6">
+                    <button id="configuration-backfill-tab" onclick="showConfigurationTab('backfill')" class="pb-3 border-b-2 border-brand text-sm font-medium text-brand">
+                        Streaming Backfill
+                    </button>
+                    <button id="configuration-users-tab" onclick="showConfigurationTab('users')" class="pb-3 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-800">
+                        Create User
+                    </button>
+                </div>
+
+                <div id="configuration-backfill-panel" class="space-y-6">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                    <h2 class="font-semibold text-gray-900 text-lg mb-1">Audiomack / Boomplay Backfill</h2>
+                    <p class="text-sm text-gray-500 mb-5">Fetch and load every available daily file in an inclusive historical date range.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">Start Date</label>
+                            <input id="backfill-start-date" type="date" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">End Date</label>
+                            <input id="backfill-end-date" type="date" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
+                        Available files will replace existing rows for the same platform and date. Missing files are recorded as warnings and do not fail the backfill.
+                    </div>
+                    <div id="backfill-message" class="hidden mb-4 px-4 py-3 rounded-lg text-sm"></div>
+                    <button id="backfill-run-btn" onclick="runStreamingBackfill()" class="w-full bg-brand hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                        Run backfill
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <h2 class="font-semibold text-gray-900 text-sm">Backfill and Ingestion Activity</h2>
+                        <button onclick="loadConfigurationRuns()" class="text-xs font-medium text-brand hover:text-blue-700">Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-gray-100">
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Platform</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Date range</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Trigger</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Files</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Rows</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Status</th>
+                            </tr></thead>
+                            <tbody id="configuration-runs-body">
+                                <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">Open this tab to load ingestion activity.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+
+                <div id="configuration-users-panel" class="hidden">
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                        <h2 class="font-semibold text-gray-900 text-lg mb-1">Create User</h2>
+                        <p class="text-sm text-gray-500 mb-5">Create an account and assign its access role.</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">First Name</label>
+                                <input id="create-user-first-name" type="text" autocomplete="given-name" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Last Name</label>
+                                <input id="create-user-last-name" type="text" autocomplete="family-name" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Username</label>
+                                <input id="create-user-username" type="text" autocomplete="username" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Email</label>
+                                <input id="create-user-email" type="email" autocomplete="email" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">Role</label>
+                            <select id="create-user-role" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Password</label>
+                                <input id="create-user-password" type="password" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1.5">Confirm Password</label>
+                                <input id="create-user-confirm-password" type="password" autocomplete="new-password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm" />
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Password must contain at least 8 characters.</p>
+
+                        <div id="create-user-message" class="hidden mb-4 px-4 py-3 rounded-lg text-sm"></div>
+                        <button id="create-user-btn" onclick="createConfigurationUser()" class="w-full bg-brand hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+                            Create user
+                        </button>
+                    </div>
+                </div>
+            </section>
 
         </main>
     </div>

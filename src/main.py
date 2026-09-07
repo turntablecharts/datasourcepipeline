@@ -1,19 +1,35 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from src.database import engine, Base
-from src.auth.bootstrap import bootstrap_admin_user
+from src.auth.utils import require_admin
 from src.auth.router import router as auth_router
 from src.templates.router import router as templates_router
 from src.weekly_data_cleaning.router import router as cleaning_router
 from src.admin.router import router as admin_router
+from src.streaming_data.router import router as streaming_router
+from src.streaming_data.audiomack_boomplay.scheduler import (
+    start_streaming_scheduler,
+    stop_streaming_scheduler,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
 Base.metadata.create_all(bind=engine)
-bootstrap_admin_user()
 
-app = FastAPI(title="TTC Data Service")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    start_streaming_scheduler()
+    try:
+        yield
+    finally:
+        stop_streaming_scheduler()
+
+
+app = FastAPI(title="TTC Data Service", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="src/static_ui"), name="static")
 
 
@@ -34,6 +50,7 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(templates_router, prefix="/templates", tags=["templates"])
 app.include_router(cleaning_router, prefix="/clean", tags=["cleaning"])
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(streaming_router, prefix="/streaming", tags=["streaming-data"])
 
 @app.get("/")
 def root():
@@ -41,7 +58,7 @@ def root():
 
 
 @app.get("/debug/db")
-def debug_db():
+def debug_db(_: None = Depends(require_admin)):
     try:
         with engine.connect() as connection:
             database_name = connection.execute(text("select current_database()")).scalar()
