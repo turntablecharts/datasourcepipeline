@@ -13,3 +13,8 @@ class EnvConstants:
     FTP_USER=os.getenv('FTP_USER')
     FTP_PASS=os.getenv('FTP_PASS')
     GPG_PASSPHRASE=os.getenv('GPG_PASSPHRASE')
+    GPG_BINARY=os.getenv('GPG_BINARY', '/usr/bin/gpg')
+    STREAMING_TIMEZONE=os.getenv('STREAMING_TIMEZONE', 'Africa/Lagos')
+    STREAMING_STAGING_DIR=os.getenv('STREAMING_STAGING_DIR', 'data')
+    SLACK_WEBHOOK_URL=os.getenv('SLACK_WEBHOOK_URL')
+    

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, text
 from sqlalchemy.sql import func
 from src.database import Base
 
@@ -163,3 +163,113 @@ class Template(Base):
     template_file_path = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_modified_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AppleMusicRaw(Base):
+    """An Apple Music report row exactly as it was uploaded."""
+
+    __tablename__ = "apple_music_raw"
+
+    id = Column(Integer, primary_key=True)
+    song_title = Column(String(500), nullable=False)
+    artiste_name = Column(String(500), nullable=False)
+    streams = Column(BigInteger, nullable=False)
+    source = Column(String(255))
+    week_start_date = Column(Date, nullable=False)
+    week_end_date = Column(Date, nullable=False)
+    created_date = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class AppleMusicMetadata(Base):
+    """Spotify metadata matched to an uploaded Apple Music report row."""
+
+    __tablename__ = "apple_music_metadata"
+
+    id = Column(Integer, primary_key=True)
+    apple_music_song_id = Column(String(255), nullable=False)
+    song_title_raw = Column(String(500), nullable=False)
+    song_title_fetched = Column(String(500), nullable=False)
+    artist_name_raw = Column(String(500))
+    artiste_name_fetched = Column(String(500), nullable=False)
+    featured_artists = Column(Text)
+    streams = Column(BigInteger, nullable=False)
+    album_name = Column(String(500))
+    genre = Column(String(255))
+    producer = Column(String(500))
+    record_label = Column(String(500))
+    distributor = Column(String(500))
+    release_date = Column(Date)
+    reporting_week_start = Column(Date, nullable=False)
+    reporting_week_end = Column(Date, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class StreamingIngestionRun(Base):
+    __tablename__ = "streaming_ingestion_run_logs"
+    __table_args__ = (
+        Index("idx_streaming_runs_platform_week", "platform", "week_start_date", "week_end_date"),
+        Index("idx_streaming_runs_started_at", "started_at"),
+    )
+
+    id = Column(String(36), primary_key=True)
+    platform = Column(String(32), nullable=False)
+    week_start_date = Column(Date, nullable=False)
+    week_end_date = Column(Date, nullable=False)
+    trigger = Column(String(20), nullable=False, default="scheduled")
+    status = Column(String(20), nullable=False, default="running")
+    expected_file_count = Column(Integer, nullable=False, default=7)
+    downloaded_file_count = Column(Integer, nullable=False, default=0)
+    loaded_file_count = Column(Integer, nullable=False, default=0)
+    loaded_row_count = Column(Integer, nullable=False, default=0)
+    missing_dates = Column(Text)
+    warning_count = Column(Integer, nullable=False, default=0)
+    error_detail = Column(Text)
+    notification_status = Column(String(32))
+    started_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    completed_at = Column(DateTime(timezone=True))
+
+
+class AudiomackStream(Base):
+    __tablename__ = "audiomack_streams"
+    __table_args__ = (
+        CheckConstraint("streams >= 1000", name="ck_audiomack_streams_minimum_daily_streams"),
+        Index("idx_audiomack_streams_date_country", "play_date", "country_code"),
+        Index("idx_audiomack_streams_aggregation", "play_date", "song_title_normalized", "artist_normalized"),
+        Index("idx_audiomack_streams_run", "ingestion_run_id"),
+    )
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    play_date = Column(Date, nullable=False)
+    isrc = Column(String(32))
+    artist = Column(Text, nullable=False)
+    song_title = Column(Text, nullable=False)
+    artist_normalized = Column(Text, nullable=False)
+    song_title_normalized = Column(Text, nullable=False)
+    country_code = Column(String(2), nullable=False)
+    streams = Column(BigInteger, nullable=False)
+    source_file = Column(Text, nullable=False)
+    source_row_number = Column(Integer, nullable=False)
+    ingestion_run_id = Column(String(36), ForeignKey("streaming_ingestion_run_logs.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class BoomplayStream(Base):
+    __tablename__ = "boomplay_streams"
+    __table_args__ = (
+        CheckConstraint("streams >= 1000", name="ck_boomplay_streams_minimum_daily_streams"),
+        Index("idx_boomplay_streams_date", "play_date"),
+        Index("idx_boomplay_streams_aggregation", "play_date", "song_title_normalized", "artist_normalized"),
+        Index("idx_boomplay_streams_run", "ingestion_run_id"),
+    )
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    play_date = Column(Date, nullable=False)
+    artist = Column(Text, nullable=False)
+    song_title = Column(Text, nullable=False)
+    artist_normalized = Column(Text, nullable=False)
+    song_title_normalized = Column(Text, nullable=False)
+    streams = Column(BigInteger, nullable=False)
+    source_file = Column(Text, nullable=False)
+    source_row_number = Column(Integer, nullable=False)
+    ingestion_run_id = Column(String(36), ForeignKey("streaming_ingestion_run_logs.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

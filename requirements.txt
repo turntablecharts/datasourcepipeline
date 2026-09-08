@@ -14,4 +14,5 @@ python-jose[cryptography]
 passlib
 bcrypt==3.2.0
 aiofiles==25.1.0
-pytest
+APScheduler==3.11.1
+certifi

@@ -135,6 +135,7 @@ Authentication:
 
 ```text
 POST /auth/login
+POST /auth/register    Admin only; used by Configurations → Create User
 GET  /auth/me
 ```
 
@@ -199,46 +200,13 @@ The cleaner tests build Excel workbooks in memory and verify validation, groupin
 
 ## GitHub Actions Deployment
 
-This repo includes `.github/workflows/deploy.yml`.
+The workflow `.github/workflows/main_turntabledata.yml` deploys to the Azure App Service `turntabledata` on pushes to `main` or manual workflow dispatch. It installs Python dependencies in the build job, packages the application, authenticates using the configured Azure repository secrets, deploys the package, and restarts the app.
 
-On every push to `main`, GitHub Actions will:
+Both startup settings in the workflow select `bash scripts/startup.sh`. On each container startup, that script installs GnuPG and CA certificates with `apt-get` if `gpg` is missing, exports the detected `GPG_BINARY` path, and starts FastAPI with one worker. Installation happens in the running App Service container and requires root access and access to Debian package repositories. An installation failure stops the script before it launches FastAPI; inspect Azure Log stream for startup errors. A fresh container may need to install the packages again, which adds startup time.
 
-1. Install Python dependencies.
-2. Run `python -m pytest tests`.
-3. SSH into the deployment server.
-4. Pull the latest `main` branch in the app directory.
-5. Install/update `requirements.txt`.
-6. Run `sql/001_album_cleaning_tables.sql` if `psql` and DB env vars are available.
-7. Restart the configured systemd service.
+Configure database, FTP, `GPG_PASSPHRASE`, and optional `SLACK_WEBHOOK_URL` values in Azure App Service environment variables. The local `.env` is excluded from deployment. No SSH access is required for this deployment flow.
 
-Add these GitHub repository secrets under **Settings → Secrets and variables → Actions**:
-
-```text
-DEPLOY_HOST       Server hostname or IP address
-DEPLOY_USER       SSH user
-DEPLOY_SSH_KEY    Private SSH key with access to the server
-APP_DIR           Absolute path to the cloned repo on the server
-DEPLOY_PORT       SSH port, optional, defaults to 22
-SERVICE_NAME      systemd service, optional, defaults to datasourcepipeline.service
-```
-
-The server should already have:
-
-- the repository cloned at `APP_DIR`
-- a production `.env` file in `APP_DIR`
-- Python 3 and `python3-venv`
-- PostgreSQL client tools if you want Actions to run the SQL migration
-- a systemd service that starts the app, for example `datasourcepipeline.service`
-
-A sample systemd unit is available at `deploy/datasourcepipeline.service.example`.
-Update its paths to match `APP_DIR`, then install it on the server:
-
-```bash
-sudo cp deploy/datasourcepipeline.service.example /etc/systemd/system/datasourcepipeline.service
-sudo systemctl daemon-reload
-sudo systemctl enable datasourcepipeline.service
-sudo systemctl start datasourcepipeline.service
-```
+For a separate systemd-based deployment, `scripts/deploy.sh` and `deploy/datasourcepipeline.service.example` remain available as examples.
 
 ## Local HTTPS for Chrome Downloads
 
