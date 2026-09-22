@@ -229,6 +229,28 @@ class StreamingIngestionRun(Base):
     completed_at = Column(DateTime(timezone=True))
 
 
+class StreamingIngestionRunEvent(Base):
+    __tablename__ = "streaming_ingestion_run_log_events"
+    __table_args__ = (
+        Index("idx_streaming_run_events_run_created", "ingestion_run_id", "created_at"),
+        Index("idx_streaming_run_events_level_created", "level", "created_at"),
+    )
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    ingestion_run_id = Column(
+        String(36),
+        ForeignKey("streaming_ingestion_run_logs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    level = Column(String(10), nullable=False)
+    event_type = Column(String(64), nullable=False)
+    message = Column(Text, nullable=False)
+    details = Column(Text)
+    source_file = Column(Text)
+    play_date = Column(Date)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class AudiomackStream(Base):
     __tablename__ = "audiomack_streams"
     __table_args__ = (
@@ -273,3 +295,4 @@ class BoomplayStream(Base):
     source_row_number = Column(Integer, nullable=False)
     ingestion_run_id = Column(String(36), ForeignKey("streaming_ingestion_run_logs.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    
