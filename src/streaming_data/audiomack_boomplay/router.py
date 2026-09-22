@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 from src.auth.utils import get_current_user, require_admin
 from src.database import get_db
-from src.models import AudiomackStream, BoomplayStream, StreamingIngestionRun, User
+from src.models import AudiomackStream, BoomplayStream, StreamingIngestionRun, StreamingIngestionRunEvent, User
 from src.streaming_data.audiomack_boomplay.dates import dates_inclusive, validate_reporting_week
 from src.streaming_data.audiomack_boomplay.exports import build_workbook, query_audiomack, query_boomplay
+from src.streaming_data.audiomack_boomplay.event_logs import serialize_event
 from src.streaming_data.audiomack_boomplay.ingestion import ingest_week, run_backfill, serialize_run
 
 
@@ -100,6 +101,20 @@ def export_boomplay(
 def ingestion_runs(limit: int = 20, _: User = Depends(get_current_user), db: Session = Depends(get_db)):
     runs = db.query(StreamingIngestionRun).order_by(StreamingIngestionRun.started_at.desc()).limit(max(1, min(limit, 100))).all()
     return [serialize_run(run) for run in runs]
+
+
+@router.get("/audiomack-boomplay/ingestion-runs/{run_id}/events")
+def ingestion_run_events(
+    run_id: str, limit: int = 500, _: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    if not db.get(StreamingIngestionRun, run_id):
+        raise HTTPException(404, "Ingestion run not found")
+    events = db.query(StreamingIngestionRunEvent).filter(
+        StreamingIngestionRunEvent.ingestion_run_id == run_id
+    ).order_by(
+        StreamingIngestionRunEvent.created_at.asc(), StreamingIngestionRunEvent.id.asc()
+    ).limit(max(1, min(limit, 1000))).all()
+    return [serialize_event(event) for event in events]
 
 
 @router.post("/audiomack-boomplay/ingest")

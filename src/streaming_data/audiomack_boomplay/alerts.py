@@ -52,7 +52,7 @@ def build_ingestion_alert(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Failure summary*\n{reason} ({error_count or 1} error(s)). Review the service logs for details.",
+                "text": f"*Failure summary*\n{reason} ({error_count or 1} error(s)). Review the run logs in Configurations for details.",
             },
         })
     blocks.extend([

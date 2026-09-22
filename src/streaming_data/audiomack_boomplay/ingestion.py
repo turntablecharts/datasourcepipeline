@@ -14,6 +14,7 @@ from src.streaming_data.audiomack_boomplay.alerts import build_ingestion_alert, 
 from src.streaming_data.audiomack_boomplay.config import StreamingConfig
 from src.streaming_data.audiomack_boomplay.dates import dates_inclusive, expected_filename, latest_completed_week
 from src.streaming_data.audiomack_boomplay.decryptor import decrypt_audiomack
+from src.streaming_data.audiomack_boomplay.event_logs import safe_exception_details, write_ingestion_event
 from src.streaming_data.audiomack_boomplay.ftp_client import FTPSourceClient, MissingRemoteFile
 from src.streaming_data.audiomack_boomplay.parsers import parse_audiomack, parse_boomplay
 
@@ -60,9 +61,6 @@ def ingest_platform_period(
         raise ValueError("end date must not be before start date")
     expected_file_count = (end - start).days + 1
     config = config or StreamingConfig()
-    config.validate_ingestion()
-    if not _try_lock(db, platform, start):
-        raise RuntimeError(f"An ingestion is already running for {platform} {start} to {end}")
 
     run = StreamingIngestionRun(
         id=str(uuid4()), platform=platform, week_start_date=start, week_end_date=end,
@@ -70,10 +68,23 @@ def ingest_platform_period(
     )
     db.add(run)
     db.commit()
+    write_ingestion_event(
+        db, run.id, "INFO", "run_started", "Ingestion run started.",
+        details={"platform": platform, "start_date": start, "end_date": end,
+                 "trigger": trigger, "expected_file_count": expected_file_count},
+    )
     missing: list[date] = []
     errors: list[str] = []
+    lock_acquired = False
 
     try:
+        config.validate_ingestion()
+        write_ingestion_event(db, run.id, "INFO", "configuration_validated", "Ingestion configuration validated.")
+        if not _try_lock(db, platform, start):
+            raise RuntimeError(f"An ingestion is already running for {platform} {start} to {end}")
+        lock_acquired = True
+        write_ingestion_event(db, run.id, "INFO", "run_lock_acquired", "Ingestion run lock acquired.")
+
         temp_args = {"prefix": f"{platform}-{start}-"}
         if config.staging_dir:
             config.staging_dir.mkdir(parents=True, exist_ok=True)
@@ -85,7 +96,12 @@ def ingest_platform_period(
             # Keep the FTP session dedicated to network I/O. Parsing, decryption,
             # and database writes can take long enough for the server to close an
             # otherwise idle control connection.
+            write_ingestion_event(
+                db, run.id, "INFO", "ftp_connecting", "Connecting to the source FTP server.",
+                details={"host": config.ftp_host},
+            )
             with FTPSourceClient(config.ftp_host or "", config.ftp_user or "", config.ftp_password or "") as ftp:
+                write_ingestion_event(db, run.id, "INFO", "ftp_connected", "Connected to the source FTP server.")
                 for play_date in dates_inclusive(start, end):
                     filename = expected_filename(platform, play_date)
                     encrypted_or_csv = staging / filename
@@ -94,33 +110,61 @@ def ingest_platform_period(
                     except MissingRemoteFile:
                         missing.append(play_date)
                         logger.warning("Missing %s source file for %s", platform, play_date)
+                        write_ingestion_event(
+                            db, run.id, "WARNING", "file_missing", "Source file was not available; continuing.",
+                            source_file=filename, play_date=play_date,
+                        )
                         continue
                     run.downloaded_file_count += 1
                     downloaded.append((play_date, filename, encrypted_or_csv))
                     db.commit()
+                    write_ingestion_event(
+                        db, run.id, "INFO", "file_downloaded", "Source file downloaded.",
+                        source_file=filename, play_date=play_date,
+                    )
 
             for play_date, filename, encrypted_or_csv in downloaded:
+                stage = "preparing_file"
                 try:
                     if platform == "audiomack":
+                        stage = "decrypting_file"
                         csv_path = staging / filename.removesuffix(".asc")
                         decrypt_audiomack(encrypted_or_csv, csv_path, config.gpg_passphrase or "", config.gpg_binary)
+                        stage = "parsing_file"
                         rows = parse_audiomack(csv_path, play_date, run.id)
                         model = AudiomackStream
                     else:
+                        stage = "parsing_file"
                         rows = parse_boomplay(encrypted_or_csv, play_date, run.id)
                         model = BoomplayStream
+                    stage = "replacing_database_rows"
                     db.execute(delete(model).where(model.play_date == play_date))
                     db.bulk_insert_mappings(model, rows)
                     run.loaded_file_count += 1
                     run.loaded_row_count += len(rows)
                     db.commit()
+                    write_ingestion_event(
+                        db, run.id, "INFO", "file_loaded", "Source file processed and stored.",
+                        details={"rows_stored": len(rows)}, source_file=filename, play_date=play_date,
+                    )
                 except Exception as exc:
                     db.rollback()
                     errors.append(f"{filename}: {exc}")
                     logger.exception("Could not process %s", filename)
+                    write_ingestion_event(
+                        db, run.id, "ERROR", "file_processing_failed", "Source file could not be processed.",
+                        details={"stage": stage, **safe_exception_details(exc)},
+                        source_file=filename, play_date=play_date,
+                    )
 
         status = "failed" if errors else "partial" if missing else "succeeded"
         _finish_run(db, run, status, missing, errors)
+        write_ingestion_event(
+            db, run.id, "ERROR" if status == "failed" else "WARNING" if status == "partial" else "INFO",
+            "run_completed", f"Ingestion run completed with status {status}.",
+            details={"downloaded_files": run.downloaded_file_count, "loaded_files": run.loaded_file_count,
+                     "rows_stored": run.loaded_row_count, "missing_files": len(missing), "errors": len(errors)},
+        )
         alert = build_ingestion_alert(
             status=status,
             platform=platform,
@@ -135,12 +179,21 @@ def ingest_platform_period(
         )
         run.notification_status = send_slack_alert(config.slack_webhook_url, alert)
         db.commit()
+        write_ingestion_event(
+            db, run.id, "INFO" if run.notification_status == "sent" else "WARNING",
+            "slack_notification", "Slack ingestion alert processed.",
+            details={"notification_status": run.notification_status},
+        )
         return serialize_run(run)
     except Exception as exc:
         db.rollback()
         run = db.get(StreamingIngestionRun, run.id)
         if run:
             _finish_run(db, run, "failed", missing, errors + [str(exc)])
+            write_ingestion_event(
+                db, run.id, "ERROR", "run_failed", "Ingestion run failed.",
+                details=safe_exception_details(exc),
+            )
             alert = build_ingestion_alert(
                 status="failed",
                 platform=platform,
@@ -156,9 +209,23 @@ def ingest_platform_period(
             )
             run.notification_status = send_slack_alert(config.slack_webhook_url, alert)
             db.commit()
+            write_ingestion_event(
+                db, run.id, "INFO" if run.notification_status == "sent" else "WARNING",
+                "slack_notification", "Slack ingestion alert processed.",
+                details={"notification_status": run.notification_status},
+            )
         raise
     finally:
-        _unlock(db, platform, start)
+        if lock_acquired:
+            try:
+                _unlock(db, platform, start)
+            except Exception as exc:
+                db.rollback()
+                logger.exception("Could not release ingestion lock for %s", run.id)
+                write_ingestion_event(
+                    db, run.id, "ERROR", "run_unlock_failed", "Ingestion run lock could not be released.",
+                    details=safe_exception_details(exc),
+                )
 
 
 def ingest_platform_week(

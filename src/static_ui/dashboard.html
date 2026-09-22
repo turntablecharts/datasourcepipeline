@@ -457,11 +457,19 @@
                                 <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Files</th>
                                 <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Rows</th>
                                 <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Status</th>
+                                <th class="pb-3 px-4 text-xs text-gray-400 uppercase">Logs</th>
                             </tr></thead>
                             <tbody id="configuration-runs-body">
-                                <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">Open this tab to load ingestion activity.</td></tr>
+                                <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">Open this tab to load ingestion activity.</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div id="configuration-run-events" class="hidden mt-6 border-t border-gray-100 pt-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 id="configuration-run-events-title" class="font-semibold text-gray-900 text-sm">Run logs</h3>
+                            <button onclick="closeIngestionRunEvents()" class="text-xs font-medium text-gray-500 hover:text-gray-800">Close</button>
+                        </div>
+                        <div id="configuration-run-events-body" class="space-y-2"></div>
                     </div>
                 </div>
                 </div>

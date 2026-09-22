@@ -459,10 +459,46 @@ async function loadConfigurationRuns() {
         <td class="px-4 py-3 text-sm text-gray-600">${run.loaded_file_count}/${run.expected_file_count}</td>
         <td class="px-4 py-3 text-sm text-gray-600">${Number(run.loaded_row_count).toLocaleString()}</td>
         <td class="px-4 py-3 text-sm ${run.status === 'succeeded' ? 'text-green-700' : run.status === 'partial' ? 'text-amber-700' : run.status === 'running' ? 'text-blue-700' : 'text-red-700'}">${escapeHtml(run.status)}</td>
-      </tr>`).join('') : '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">No ingestion activity yet.</td></tr>';
+        <td class="px-4 py-3"><button onclick="loadIngestionRunEvents('${escapeHtml(run.id)}')" class="text-xs font-medium text-brand hover:text-blue-700">View</button></td>
+      </tr>`).join('') : '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">No ingestion activity yet.</td></tr>';
   } catch (error) {
-    body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-red-500">Could not load ingestion activity.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-sm text-red-500">Could not load ingestion activity.</td></tr>';
   }
+}
+
+async function loadIngestionRunEvents(runId) {
+  const panel = document.getElementById('configuration-run-events');
+  const title = document.getElementById('configuration-run-events-title');
+  const body = document.getElementById('configuration-run-events-body');
+  panel.classList.remove('hidden');
+  title.textContent = `Run logs · ${runId}`;
+  body.innerHTML = '<p class="text-sm text-gray-400">Loading logs...</p>';
+  try {
+    const response = await fetch(`${API}/streaming/audiomack-boomplay/ingestion-runs/${encodeURIComponent(runId)}/events`, { headers: authHeaders() });
+    const events = await response.json();
+    if (!response.ok) throw new Error(events.detail || 'Run logs could not be loaded.');
+    body.innerHTML = events.length ? events.map(event => {
+      const detail = event.details?.message || (event.details ? JSON.stringify(event.details) : '');
+      const context = [event.play_date, event.source_file].filter(Boolean).join(' · ');
+      const levelClass = event.level === 'ERROR' ? 'text-red-700 bg-red-50' : event.level === 'WARNING' ? 'text-amber-700 bg-amber-50' : 'text-blue-700 bg-blue-50';
+      return `<div class="rounded-lg border border-gray-100 p-3">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="px-2 py-0.5 rounded text-xs font-semibold ${levelClass}">${escapeHtml(event.level)}</span>
+          <span class="text-xs font-medium text-gray-700">${escapeHtml(event.event_type)}</span>
+          <span class="text-xs text-gray-400">${escapeHtml(event.created_at ? new Date(event.created_at).toLocaleString() : '')}</span>
+        </div>
+        <p class="text-sm text-gray-700">${escapeHtml(event.message)}</p>
+        ${context ? `<p class="mt-1 text-xs text-gray-500">${escapeHtml(context)}</p>` : ''}
+        ${detail ? `<pre class="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600 bg-gray-50 rounded p-2">${escapeHtml(detail)}</pre>` : ''}
+      </div>`;
+    }).join('') : '<p class="text-sm text-gray-400">No detailed logs exist for this run. Logs are recorded for runs started after this update.</p>';
+  } catch (error) {
+    body.innerHTML = `<p class="text-sm text-red-500">${escapeHtml(error.message || 'Run logs could not be loaded.')}</p>`;
+  }
+}
+
+function closeIngestionRunEvents() {
+  document.getElementById('configuration-run-events').classList.add('hidden');
 }
 
 function showCreateUserMessage(message, success) {
