@@ -283,10 +283,19 @@
             <section id="streaming-section" class="hidden space-y-8">
                 <div>
                     <h1 class="text-xl font-semibold text-gray-900">Streaming Data</h1>
-                    <p class="text-sm text-gray-500 mt-1">Upload weekly platform reports for storage and metadata enrichment.</p>
+                    <p class="text-sm text-gray-500 mt-1">Upload Apple Music data or download Audiomack and Boomplay reports.</p>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                <div class="border-b border-gray-200 flex gap-6">
+                    <button id="streaming-apple-tab" onclick="showStreamingTab('apple')" class="pb-3 border-b-2 border-brand text-sm font-medium text-brand">
+                        Apple Music
+                    </button>
+                    <button id="streaming-ab-tab" onclick="showStreamingTab('audiomack-boomplay')" class="pb-3 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-800">
+                        Audiomack &amp; Boomplay
+                    </button>
+                </div>
+
+                <div id="streaming-apple-upload-panel" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
                     <h2 class="font-semibold text-gray-900 text-lg mb-5">Upload Apple Music Data</h2>
 
                     <div class="mb-4">
@@ -322,7 +331,7 @@
                     </button>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
+                <div id="streaming-ab-download-panel" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-2xl">
                     <h2 class="font-semibold text-gray-900 text-lg mb-1">Download Audiomack / Boomplay</h2>
                     <p id="ab-coverage" class="text-xs text-gray-500 mb-5">Select a platform to view available coverage.</p>
 
@@ -367,7 +376,7 @@
                     </button>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div id="streaming-ab-runs-panel" class="hidden bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                     <h2 class="font-semibold text-gray-900 text-sm mb-5">Recent Audiomack / Boomplay Runs</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -385,7 +394,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div id="streaming-apple-history-panel" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                     <h2 class="font-semibold text-gray-900 text-sm mb-5">Recent Apple Music Uploads</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
