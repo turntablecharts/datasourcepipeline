@@ -2,6 +2,7 @@ let currentUser = null;
 let availableTemplates = [];
 let pendingReplacementUpload = null;
 let selectedStreamingFile = null;
+let currentStreamingTab = 'apple';
 
 async function init() {
   requireAuth();
@@ -23,7 +24,7 @@ function showSection(section) {
   const configurationsNav = document.getElementById('configurations-nav');
   configurationsNav.className = `${configurationsNav.classList.contains('hidden') ? 'hidden ' : ''}${navClass(configurations)}`;
   document.getElementById('mobile-section-select').value = section;
-  if (streaming) loadStreamingHistory();
+  if (streaming) showStreamingTab(currentStreamingTab);
   if (configurations) loadConfigurationRuns();
 }
 
@@ -263,7 +264,22 @@ async function loadStreamingHistory() {
   } catch (error) {
     body.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-sm text-red-500">Could not load recent uploads.</td></tr>';
   }
-  await Promise.all([loadABCoverage(), loadABRuns()]);
+}
+
+function showStreamingTab(tab) {
+  const apple = tab === 'apple';
+  currentStreamingTab = apple ? 'apple' : 'audiomack-boomplay';
+  document.getElementById('streaming-apple-upload-panel').classList.toggle('hidden', !apple);
+  document.getElementById('streaming-apple-history-panel').classList.toggle('hidden', !apple);
+  document.getElementById('streaming-ab-download-panel').classList.toggle('hidden', apple);
+  document.getElementById('streaming-ab-runs-panel').classList.toggle('hidden', apple);
+  document.getElementById('streaming-apple-tab').className = configurationTabClass(apple);
+  document.getElementById('streaming-ab-tab').className = configurationTabClass(!apple);
+  if (apple) {
+    loadStreamingHistory();
+  } else {
+    Promise.all([loadABCoverage(), loadABRuns()]);
+  }
 }
 
 async function streamingPlatformChanged() {
