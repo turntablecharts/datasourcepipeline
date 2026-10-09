@@ -254,7 +254,7 @@ class StreamingIngestionRunEvent(Base):
 class AudiomackStream(Base):
     __tablename__ = "audiomack_streams"
     __table_args__ = (
-        CheckConstraint("streams >= 1000", name="ck_audiomack_streams_minimum_daily_streams"),
+        CheckConstraint("streams >= 0", name="ck_audiomack_streams_nonnegative"),
         Index("idx_audiomack_streams_date_country", "play_date", "country_code"),
         Index("idx_audiomack_streams_aggregation", "play_date", "song_title_normalized", "artist_normalized"),
         Index("idx_audiomack_streams_run", "ingestion_run_id"),
@@ -278,7 +278,7 @@ class AudiomackStream(Base):
 class BoomplayStream(Base):
     __tablename__ = "boomplay_streams"
     __table_args__ = (
-        CheckConstraint("streams >= 1000", name="ck_boomplay_streams_minimum_daily_streams"),
+        CheckConstraint("streams >= 0", name="ck_boomplay_streams_nonnegative"),
         Index("idx_boomplay_streams_date", "play_date"),
         Index("idx_boomplay_streams_aggregation", "play_date", "song_title_normalized", "artist_normalized"),
         Index("idx_boomplay_streams_run", "ingestion_run_id"),

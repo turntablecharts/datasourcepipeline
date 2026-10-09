@@ -16,7 +16,7 @@ from src.streaming_data.audiomack_boomplay.dates import dates_inclusive, expecte
 from src.streaming_data.audiomack_boomplay.decryptor import decrypt_audiomack
 from src.streaming_data.audiomack_boomplay.event_logs import safe_exception_details, write_ingestion_event
 from src.streaming_data.audiomack_boomplay.ftp_client import FTPSourceClient, MissingRemoteFile
-from src.streaming_data.audiomack_boomplay.parsers import parse_audiomack, parse_boomplay
+from src.streaming_data.audiomack_boomplay.parsers import ProcessAudiomackBoomplay
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,9 @@ def ingest_platform_period(
         raise ValueError(f"Unsupported platform: {platform}")
     if end < start:
         raise ValueError("end date must not be before start date")
+    # adjust start date to the previous Friday and end date to the next Thursday to ensure a full week is always processed
+    start -= timedelta(days=(start.weekday() - 4) % 7)
+    end += timedelta(days=(3 - end.weekday()) % 7)
     expected_file_count = (end - start).days + 1
     config = config or StreamingConfig()
 
@@ -123,20 +126,28 @@ def ingest_platform_period(
                         source_file=filename, play_date=play_date,
                     )
 
+            # Decrypt source files, then let the parser aggregate and qualify the full period.
+            processor = ProcessAudiomackBoomplay(run_id=run.id)
+            files_to_process = []
+            for play_date, filename, encrypted_or_csv in downloaded:
+                csv_path = encrypted_or_csv
+                if platform == "audiomack":
+                    csv_path = staging / filename.removesuffix(".asc")
+                    decrypt_audiomack(encrypted_or_csv, csv_path, config.gpg_passphrase or "", config.gpg_binary)
+                files_to_process.append((play_date, csv_path))
+            if platform == "audiomack":
+                rows = processor.parse_audiomack(files_to_process)
+            else:
+                rows = processor.parse_boomplay(files_to_process)
+            rows_by_date = {}
+            for row in rows:
+                rows_by_date.setdefault(row["play_date"], []).append(row)
+
             for play_date, filename, encrypted_or_csv in downloaded:
                 stage = "preparing_file"
                 try:
-                    if platform == "audiomack":
-                        stage = "decrypting_file"
-                        csv_path = staging / filename.removesuffix(".asc")
-                        decrypt_audiomack(encrypted_or_csv, csv_path, config.gpg_passphrase or "", config.gpg_binary)
-                        stage = "parsing_file"
-                        rows = parse_audiomack(csv_path, play_date, run.id)
-                        model = AudiomackStream
-                    else:
-                        stage = "parsing_file"
-                        rows = parse_boomplay(encrypted_or_csv, play_date, run.id)
-                        model = BoomplayStream
+                    rows = rows_by_date.get(play_date, [])
+                    model = AudiomackStream if platform == "audiomack" else BoomplayStream
                     stage = "replacing_database_rows"
                     db.execute(delete(model).where(model.play_date == play_date))
                     db.bulk_insert_mappings(model, rows)
