@@ -2,7 +2,7 @@
 
 The scheduled job attempts to ingest the preceding Friday–Thursday reporting week every Monday at 7:45 AM. Missing remote files result in a completed `partial` run and an optional Slack warning; available files still load. Rerunning ingestion for the same week retries a partial week, while a platform/week that already succeeded is skipped. Actual connection, decryption, validation, and database errors are failures.
 
-Only source rows with at least **1,000 streams on that individual day** are persisted for either platform. The threshold is applied before database insertion and before any multi-day export aggregation. A valid source file whose rows are all below 1,000 still counts as a successfully processed file and inserts zero rows.
+Audiomack combines source rows by `play_date + artist + title + geo`, summing streams across ISRCs. It then sums each `artist + title + geo` combination over its Friday–Thursday reporting week and retains daily aggregates only for songs with at least **2,000 weekly streams**. Artist and title grouping uses trimmed source values. Daily counts below 2,000 are retained for qualifying songs. A merged row keeps the first source row number; its ISRC is null when contributing ISRCs differ. All available files are parsed before any stream records are replaced; a parsing/decryption failure prevents that Audiomack period from being written. Missing files still produce a partial run, with qualification based on available days; rerun the full week when they arrive. Boomplay also uses pandas to combine daily entries by artist and title, then retains their daily aggregates only when the Friday–Thursday song total reaches 2,000 streams. Both platforms parse all available files before writing stream records.
 
 Export requests perform date/country filtering, song aggregation, stream summing, sorting, and tie-inclusive top-500/top-800 ranking in PostgreSQL. Python receives only the final aggregated result rows and formats them into Excel.
 
@@ -23,13 +23,15 @@ Admins see a `Configurations` tab in the Data Service UI. Its Audiomack/Boomplay
 POST /streaming/audiomack-boomplay/backfill?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
 ```
 
+Both platforms expand each requested chunk to full Friday–Thursday weeks so weekly totals are not split by chunk boundaries. This can also replace dates outside the original request, and overlapping chunks may reprocess a week.
+
 Each platform/chunk creates an entry in `streaming_ingestion_run_logs` with trigger `backfill`. Available source files replace that platform/date's stored rows, while missing files remain non-fatal warnings. The endpoint enforces the admin role server-side; hiding the tab is only a UI convenience.
 
 ## Database
 
 Apply `sql/002_audiomack_boomplay_streams.sql` for a new production database. The app's `Base.metadata.create_all()` also creates the models in local environments.
 
-For a database that already contains streaming rows, review and separately apply `sql/004_raise_daily_stream_threshold.sql`. It deletes previously stored rows below 1,000 and adds database constraints preventing them from being inserted again. Back up the database and review the affected row counts before running this destructive cleanup migration.
+For an existing database, apply `sql/006_audiomack_weekly_stream_threshold.sql` after prior migrations to replace the Audiomack daily minimum constraint with a nonnegative-stream constraint. Reingest affected weeks to recover source rows excluded by the previous daily filter; use a manual ingestion or backfill because successful scheduled runs are skipped. Apply `sql/007_boomplay_weekly_stream_threshold.sql` as well to remove Boomplay's old daily minimum constraint. Neither migration rewrites existing data; reingest both platforms to recover previously filtered streams.
 
 ## Scheduler
 
