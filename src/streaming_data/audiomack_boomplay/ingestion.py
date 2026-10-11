@@ -126,6 +126,7 @@ def ingest_platform_period(
                         source_file=filename, play_date=play_date,
                     )
 
+            write_ingestion_event(db, run.id, "INFO", "ftp_closed", "Source FTP connection closed.")
             # Decrypt source files, then let the parser aggregate and qualify the full period.
             processor = ProcessAudiomackBoomplay(run_id=run.id)
             files_to_process = []
@@ -133,12 +134,29 @@ def ingest_platform_period(
                 csv_path = encrypted_or_csv
                 if platform == "audiomack":
                     csv_path = staging / filename.removesuffix(".asc")
+                    write_ingestion_event(
+                        db, run.id, "INFO", "decryption_started", "Source file decryption started.",
+                        source_file=filename, play_date=play_date,
+                    )
                     decrypt_audiomack(encrypted_or_csv, csv_path, config.gpg_passphrase or "", config.gpg_binary)
+                    write_ingestion_event(
+                        db, run.id, "INFO", "decryption_completed", "Source file decryption completed.",
+                        source_file=filename, play_date=play_date,
+                        details={"decrypted_bytes": csv_path.stat().st_size},
+                    )
                 files_to_process.append((play_date, csv_path))
+            write_ingestion_event(
+                db, run.id, "INFO", "parsing_started", "Reporting period parsing started.",
+                details={"file_count": len(files_to_process)},
+            )
             if platform == "audiomack":
                 rows = processor.parse_audiomack(files_to_process)
             else:
                 rows = processor.parse_boomplay(files_to_process)
+            write_ingestion_event(
+                db, run.id, "INFO", "parsing_completed", "Reporting period parsing completed.",
+                details={"qualifying_rows": len(rows)},
+            )
             rows_by_date = {}
             for row in rows:
                 rows_by_date.setdefault(row["play_date"], []).append(row)

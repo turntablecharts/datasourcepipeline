@@ -41,7 +41,7 @@ def start_streaming_scheduler() -> None:
     if scheduler.running:
         return
 
-    trigger = CronTrigger(day_of_week="sat", hour=10, minute=3, timezone=config.timezone)
+    trigger = CronTrigger(day_of_week="sat", hour=10, minute=0, timezone=config.timezone)
     scheduler.add_job(
         run_scheduled_ingestion,
         trigger=trigger,

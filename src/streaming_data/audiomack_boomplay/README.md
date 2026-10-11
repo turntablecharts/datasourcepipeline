@@ -1,6 +1,6 @@
 # Audiomack and Boomplay automation
 
-The scheduled job attempts to ingest the preceding Friday–Thursday reporting week every Monday at 7:45 AM. Missing remote files result in a completed `partial` run and an optional Slack warning; available files still load. Rerunning ingestion for the same week retries a partial week, while a platform/week that already succeeded is skipped. Actual connection, decryption, validation, and database errors are failures.
+The scheduled job attempts to ingest the preceding Friday–Thursday reporting week every Saturday at 10:00 AM. Missing remote files result in a completed `partial` run and an optional Slack warning; available files still load. Rerunning ingestion for the same week retries a partial week, while a platform/week that already succeeded is skipped. Actual connection, decryption, validation, and database errors are failures.
 
 Audiomack combines source rows by `play_date + artist + title + geo`, summing streams across ISRCs. It then sums each `artist + title + geo` combination over its Friday–Thursday reporting week and retains daily aggregates only for songs with at least **2,000 weekly streams**. Artist and title grouping uses trimmed source values. Daily counts below 2,000 are retained for qualifying songs. A merged row keeps the first source row number; its ISRC is null when contributing ISRCs differ. All available files are parsed before any stream records are replaced; a parsing/decryption failure prevents that Audiomack period from being written. Missing files still produce a partial run, with qualification based on available days; rerun the full week when they arrive. Boomplay also uses pandas to combine daily entries by artist and title, then retains their daily aggregates only when the Friday–Thursday song total reaches 2,000 streams. Both platforms parse all available files before writing stream records.
 
@@ -35,7 +35,7 @@ For an existing database, apply `sql/006_audiomack_weekly_stream_threshold.sql` 
 
 ## Scheduler
 
-APScheduler starts and stops with the FastAPI application. It runs the latest completed Friday–Thursday period every Monday at 7:45 AM in `STREAMING_TIMEZONE` (default `Africa/Lagos`). Restart the application after changing the schedule. The application must be running at the scheduled time; runs missed while it is stopped are not replayed on startup.
+APScheduler starts and stops with the FastAPI application. It runs the latest completed Friday–Thursday period every Saturday at 10:00 AM in `STREAMING_TIMEZONE` (default `Africa/Lagos`). Restart the application after changing the schedule. The application must be running at the scheduled time; runs missed while it is stopped are not replayed on startup.
 
 There are no additional scheduled retries. Use the CLI to rerun a partial week. Successfully completed platform/week combinations are skipped on reruns, and the existing PostgreSQL advisory lock prevents overlapping ingestion for the same platform/week.
 
